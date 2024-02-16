@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Body, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException #BackgroundTasks
 import schemas
 import models
 import pandas as pd
@@ -21,6 +21,14 @@ app = FastAPI()
 
 INTERVAL_SCALER = {1: 0, 2: 1, 3: 1.5, 4: 2}
 NEXT_CARD_ID = None
+#CARD_REVIEW_LIMIT = 2
+# CARDS_REVIEWED = 0
+
+
+# def reset_card_reviews():
+#     global CARD_REVIEWS
+#     CARD_REVIEWS = 0
+#     print("Card reviews reset to 0.")
 
 
 # Load the data from JSON
@@ -70,8 +78,14 @@ def load_data():
 
 # Load the data base when app is started
 @app.on_event("startup")
-async def startup_event():
+async def startup_event(): #background_tasks: BackgroundTasks):
+    # Load data in from JSON
     load_data()
+
+    # # Schedule card review limit to reset every midnight
+    # midnight = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    # time_until_midnight = (midnight - datetime.now()).total_seconds()
+    # background_tasks.add_task(reset_card_reviews, delay=time_until_midnight)
 
 
 # Get all cards
@@ -92,6 +106,14 @@ def getCard(id: int, session: Session = Depends(get_session)):
 @app.get("/next_card")
 def getNextCard(session: Session = Depends(get_session)):
     global NEXT_CARD_ID
+    # global CARD_REVIEW_LIMIT
+    # global CARDS_REVIEWED
+
+    # Check if review limit reached
+    # if CARDS_REVIEWED > CARD_REVIEW_LIMIT:
+    #     raise HTTPException(status_code=429, detail="Card review limit reached")
+    # CARDS_REVIEWED =+ 1
+    
     card = (
         session.query(models.Card)
         .filter(models.Card.next_review <= datetime.now().date() + timedelta(days=1))
