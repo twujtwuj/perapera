@@ -1,10 +1,14 @@
 from fastapi import FastAPI, Depends, HTTPException #BackgroundTasks
-import schemas
-import models
+import schemas as schemas
+import models as models
 import pandas as pd
 from datetime import datetime, timedelta
 from database import Base, engine, SessionLocal
 from sqlalchemy.orm import Session
+
+# FRONT END --------
+from fastapi.middleware.cors import CORSMiddleware  # Enable cors for dealing with cross-origin communication
+# ------------------
 
 Base.metadata.create_all(engine)  # sets up SQLite data base
 
@@ -18,6 +22,20 @@ def get_session():
 
 
 app = FastAPI()
+
+# CORS FOR FRONT END -----------------
+origins=  [
+    "http://localhost:3000", 
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=['*'],
+    allow_headers=['*']
+)
+# -----------------------------------
 
 INTERVAL_SCALER = {1: 0, 2: 1, 3: 1.5, 4: 2}
 NEXT_CARD_ID = None
@@ -34,8 +52,12 @@ NEXT_CARD_ID = None
 # Load the data from JSON
 def load_data():
     with SessionLocal() as session:
+
+        # Delete all records from the Card table
+        session.query(models.Card).delete()
+
         # Read JSON file with Pandas
-        kanji_df = pd.read_json("kanji-kyouiku.json", orient="index")[:4]
+        kanji_df = pd.read_json("../data/kanji-kyouiku.json", orient="index")[:5]
         kanji_df.reset_index(inplace=True)
         kanji_df.rename(columns={"index": "kanji"}, inplace=True)
         cols = [
@@ -46,7 +68,7 @@ def load_data():
             "jlpt_new",
             "meanings",
             "readings_on",
-            "readings_kun",
+            "readings_kun"
         ]
         kanji_df = kanji_df[cols]
 
@@ -58,6 +80,7 @@ def load_data():
         kanji_df["readings_kun"] = kanji_df["readings_kun"].apply(
             lambda x: x[0] if x else None
         )
+        kanji_df["seen"] = False
 
         # 'Reset' the review
         kanji_df["prev_review"] = datetime.now().date()
@@ -88,18 +111,34 @@ async def startup_event(): #background_tasks: BackgroundTasks):
     # background_tasks.add_task(reset_card_reviews, delay=time_until_midnight)
 
 
+
 # Get all cards
-@app.get("/")
-def getCards(session: Session = Depends(get_session)):
-    cards = session.query(models.Card).all()
+@app.get("/all_cards")
+def getAllCards(session: Session = Depends(get_session)):
+    cards = (
+        session.query(models.Card)
+        .order_by(models.Card.id.asc())
+        .all()
+    )
+    return cards
+
+# Get all seen cards, and order them by their review dates
+@app.get("/seen_cards")
+def getSeenCards(session: Session = Depends(get_session)):
+    cards = (
+        session.query(models.Card)
+        .filter(models.Card.seen == True)
+        .order_by(models.Card.next_review.asc())
+        .all()
+    )
     return cards
 
 
-# Get a card with ID
-@app.get("/get_card/{id}")
-def getCard(id: int, session: Session = Depends(get_session)):
-    card = session.query(models.Card).get(id)
-    return card
+# # Get a card with ID
+# @app.get("/get_card/{id}")
+# def getCard(id: int, session: Session = Depends(get_session)):
+#     card = session.query(models.Card).get(id)
+#     return card
 
 
 # Get a card that is due i.e. next_review is set to today, with lowest ID number
@@ -145,6 +184,9 @@ def updateCardReview(rating: int, session: Session = Depends(get_session)):
     # Check if the card exists
     if not card:
         raise HTTPException(status_code=404, detail="Card not found")
+    
+    # Set card to seen
+    card.seen = True
 
     # Check valid rating
     if rating not in [1, 2, 3, 4]:
@@ -158,7 +200,7 @@ def updateCardReview(rating: int, session: Session = Depends(get_session)):
     )
     rounded_interval = timedelta(days=rounded_days)
     card.prev_review = current_date
-    card.next_review = current_date + timedelta(days=1) + rounded_interval
+    card.next_review = current_date + rounded_interval + timedelta(days=1)
 
     session.commit()
 
@@ -185,7 +227,6 @@ def addCard(card: schemas.Card, session: Session = Depends(get_session)):
     session.refresh(card)
     return card
 
-
 # Delete cards
 @app.delete("/{id}")
 def deleteCard(id: int, session: Session = Depends(get_session)):
@@ -194,3 +235,12 @@ def deleteCard(id: int, session: Session = Depends(get_session)):
     session.commit()
     session.close()
     return "Card {id} was deleted"
+
+# # Delete cards by kanji
+# @app.delete("/{id}")
+# def deleteCard(id: int, session: Session = Depends(get_session)):
+#     card = session.query(models.Card).get(id)
+#     session.delete(card)
+#     session.commit()
+#     session.close()
+#     return "Card {id} was deleted"
