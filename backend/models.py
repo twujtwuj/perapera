@@ -1,4 +1,6 @@
-from sqlalchemy import Column, Integer, String, DateTime
+# SQLite tables
+
+from sqlalchemy import Column, Integer, String, DateTime, Boolean
 from database import Base
 
 
@@ -16,3 +18,4 @@ class Card(Base):
     readings_kun = Column(String)
     prev_review = Column(DateTime)
     next_review = Column(DateTime)
+    seen = Column(Boolean)

@@ -3,7 +3,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
 
-engine = create_engine("sqlite:///perapera.db")  # databse engine
+engine = create_engine("sqlite:///perapera.db")  # databse engine; sits within the application
 
 Base = declarative_base()  # class to access database
 

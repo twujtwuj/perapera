@@ -1,3 +1,7 @@
+# pydantic model
+# validates request from react application
+# based on validity, accepts or rejects into FastAPI application
+
 from pydantic import BaseModel
 from datetime import datetime
 
@@ -13,6 +17,14 @@ class Card(BaseModel):
     readings_kun: str
     prev_review: datetime
     next_review: datetime
+    soon: bool
+
+# FRONT END
+class CardModel(Card):
+    id: int
+
+    class Config:
+        orm_mode = True
 
 
 # from typing import List, Optional
