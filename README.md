@@ -5,7 +5,7 @@ Each day, the user must review (old and new cards) up to a certain limit. At eac
 
 I based the API off of the FastAPI tutorial from this website (https://dennisivy.com/fast-api-crud). Uses SQL Alchemy (SQLite).
 
-
+<!-- 
 - ReactJS used to create app `npx create-react-app perapera`
 - Boostrap (CSS/Javascript framework/library)
 - Start application from package.json with `npm start` from `frontend/perapera`
@@ -20,4 +20,4 @@ App.js is the main file we work on
 
 127.0.0.1 == localhost
 FastAPI works on port 8000 (of local machine)
-React is on 3000 (of local machine)
+React is on 3000 (of local machine) -->
