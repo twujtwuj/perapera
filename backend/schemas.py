@@ -17,7 +17,7 @@ class Card(BaseModel):
     readings_kun: str
     prev_review: datetime
     next_review: datetime
-    soon: bool
+    seen: bool
 
 # FRONT END
 class CardModel(Card):

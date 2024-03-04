@@ -1,10 +1,12 @@
-from fastapi import FastAPI, Depends, HTTPException #BackgroundTasks
+from fastapi import FastAPI, Depends, HTTPException
 import schemas as schemas
 import models as models
+from data_loader import data_loader
 import pandas as pd
 from datetime import datetime, timedelta
 from database import Base, engine, SessionLocal
 from sqlalchemy.orm import Session
+#from apscheduler.schedulers.background import BackgroundScheduler
 
 # FRONT END --------
 from fastapi.middleware.cors import CORSMiddleware  # Enable cors for dealing with cross-origin communication
@@ -39,57 +41,33 @@ app.add_middleware(
 
 INTERVAL_SCALER = {1: 0, 2: 1, 3: 1.5, 4: 2}
 NEXT_CARD_ID = None
-#CARD_REVIEW_LIMIT = 2
-# CARDS_REVIEWED = 0
+
+# New card limit / review limit / deal with no new cards left
+TODAYS_REVIEWS = 0
+MAX_REVIEWS = 2
 
 
-# def reset_card_reviews():
-#     global CARD_REVIEWS
-#     CARD_REVIEWS = 0
+# # Reset function
+# def reset_todays_reviews():
+#     global TODAYS_REVIEWS
+#     TODAYS_REVIEWS = 0
 #     print("Card reviews reset to 0.")
+# # Background task to reset reviews
+# def reset_reviews(background_tasks: BackgroundTasks):
+#     background_tasks.add_task(reset_todays_reviews)
 
 
-# Load the data from JSON
-def load_data():
+# Load the data base when app is started
+@app.on_event("startup")
+async def startup_event(): #background_tasks: BackgroundTasks): #background_tasks: BackgroundTasks):
+   
+    # Load data in from JSON
     with SessionLocal() as session:
 
         # Delete all records from the Card table
         session.query(models.Card).delete()
 
-        # Read JSON file with Pandas
-        kanji_df = pd.read_json("../data/kanji-kyouiku.json", orient="index")[:5]
-        kanji_df.reset_index(inplace=True)
-        kanji_df.rename(columns={"index": "kanji"}, inplace=True)
-        cols = [
-            "kanji",
-            "strokes",
-            "grade",
-            "freq",
-            "jlpt_new",
-            "meanings",
-            "readings_on",
-            "readings_kun"
-        ]
-        kanji_df = kanji_df[cols]
-
-        # Select the first element of the lists for meanings, readings_on, and readings_kun
-        kanji_df["meanings"] = kanji_df["meanings"].apply(lambda x: x[0] if x else None)
-        kanji_df["readings_on"] = kanji_df["readings_on"].apply(
-            lambda x: x[0] if x else None
-        )
-        kanji_df["readings_kun"] = kanji_df["readings_kun"].apply(
-            lambda x: x[0] if x else None
-        )
-        kanji_df["seen"] = False
-
-        # 'Reset' the review
-        kanji_df["prev_review"] = datetime.now().date()
-        kanji_df["next_review"] = datetime.now().date()
-
-        # Convert 'freq' column to integer
-        kanji_df["freq"] = (
-            pd.to_numeric(kanji_df["freq"], errors="coerce").fillna(0).astype(int)
-        )
+        kanji_df = data_loader()
 
         # Insert data into the database
         for _, row in kanji_df.iterrows():
@@ -98,17 +76,10 @@ def load_data():
             session.commit()
             session.refresh(card)
 
-
-# Load the data base when app is started
-@app.on_event("startup")
-async def startup_event(): #background_tasks: BackgroundTasks):
-    # Load data in from JSON
-    load_data()
-
-    # # Schedule card review limit to reset every midnight
-    # midnight = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    # # Schedule card review limit to reset every day at midnight
+    # midnight = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
     # time_until_midnight = (midnight - datetime.now()).total_seconds()
-    # background_tasks.add_task(reset_card_reviews, delay=time_until_midnight)
+    # background_tasks.add_task(reset_reviews, background_tasks, delay=time_until_midnight)
 
 
 
@@ -145,13 +116,13 @@ def getSeenCards(session: Session = Depends(get_session)):
 @app.get("/next_card")
 def getNextCard(session: Session = Depends(get_session)):
     global NEXT_CARD_ID
-    # global CARD_REVIEW_LIMIT
-    # global CARDS_REVIEWED
+    # global TODAYS_REVIEWS
+    # global MAX_REVIEWS
 
-    # Check if review limit reached
-    # if CARDS_REVIEWED > CARD_REVIEW_LIMIT:
+    # # Check if review limit reached
+    # if TODAYS_REVIEWS > MAX_REVIEWS:
     #     raise HTTPException(status_code=429, detail="Card review limit reached")
-    # CARDS_REVIEWED =+ 1
+    # TODAYS_REVIEWS =+ 1
     
     card = (
         session.query(models.Card)
@@ -227,20 +198,30 @@ def addCard(card: schemas.Card, session: Session = Depends(get_session)):
     session.refresh(card)
     return card
 
-# Delete cards
-@app.delete("/{id}")
-def deleteCard(id: int, session: Session = Depends(get_session)):
+# Delete card by ID
+@app.delete("/delete/{id}")
+def delete_card_by_id(id: int, session: Session = Depends(get_session)):
     card = session.query(models.Card).get(id)
-    session.delete(card)
-    session.commit()
-    session.close()
-    return "Card {id} was deleted"
+    if card:
+        session.delete(card)
+        session.commit()
+        session.close()
+        return f"Card {id} with kanji {card.kanji} was deleted"
+    else:
+        raise HTTPException(status_code=404, detail=f"Card with ID {id} not found")
 
-# # Delete cards by kanji
-# @app.delete("/{id}")
-# def deleteCard(id: int, session: Session = Depends(get_session)):
-#     card = session.query(models.Card).get(id)
-#     session.delete(card)
-#     session.commit()
-#     session.close()
-#     return "Card {id} was deleted"
+# # Delete card by kanji
+# @app.delete("/delete/{kanji}")
+# def delete_card_by_kanji(kanji: str, session: Session = Depends(get_session)):
+#     card = (
+#         session.query(models.Card)
+#         .filter(models.Card.kanji == kanji)
+#         .first()
+#     )
+#     if card:
+#         session.delete(card)
+#         session.commit()
+#         session.close()
+#         return f"Card {card.id} with kanji {card.kanji} was deleted"
+#     else:
+#         raise HTTPException(status_code=404, detail=f"Card with kanji {kanji} not found")
