@@ -1,43 +1,58 @@
+// React
 import React, {useState, useEffect} from 'react'  // react hooks used for API endpoints
 import api from './api'
+
+// Bootstrap
+import 'bootstrap/dist/css/bootstrap.css'
+import { Tabs, Tab } from 'react-bootstrap'  // Use tabs
+import Table from 'react-bootstrap/Table'  // Use table
+import Button from 'react-bootstrap/Button'  // Use table
 
 // useState hook: keep a state within React, so we know when state changes, when to shift and change pieces of data
 // useEffect hook: when component loads (App.js), then fetch transactions
 
 const App = () => {
+
   const [card, setCard] = useState([]);
   const [showAnswer, setShowAnswer] = useState(false);
+  const [seenCards, setSeenCards] = useState([]);
+
+  // Get seen cards
+  const fetchSeenCards = async () => {
+    const response = await api.get('/seen_cards');  // seen cards port
+    setSeenCards(response.data);
+  };
 
   // Get the next card
   const fetchNextCard = async () => {
     const response = await api.get('/next_card')  // next card port
     setCard(response.data)
     setShowAnswer(false);
+    fetchSeenCards();
   }
 
-  // Initialise the first card on component mount
   useEffect(() => {
     fetchNextCard();
+    fetchSeenCards();
   }, [])
 
-  // Show answer button click
+  // Review button click
+  const reviewButtonClick = async (rating) => {
+    await api.put(`/next_card_review?rating=${rating}`);  // reviewing next card port
+    fetchNextCard();
+    fetchSeenCards();
+  };
+
+  // Show answer when button clicked
   const showAnswerButtonClick = () => {
     setShowAnswer(true);
   }
 
-  // Review button click
-  const reviewButtonClick = async (rating) => {
-    // Make the API call to update card with the selected review level
-    await api.put(`/next_card_review?rating=${rating}`);
-    fetchNextCard();
-  };
-
-  // HTML stuff is from boostrap; can only return one things as a paretn
   return (
 
     <div>
 
-      {/* Display  */}
+      {/* Navigation bar */}
       <nav className='navbar navbar-dark bg-primary'>
         <div ClassName='container-fluid'>
           <a className='navbar-brand' href='#' style={{ marginLeft: '20px' }}>
@@ -45,64 +60,103 @@ const App = () => {
           </a>
         </div>
       </nav>
+      
+      {/* Tabs */}
+      <Tabs defaultActiveKey="second">
 
-      {/* Display kanji */}
-      <div className='card-container' style={{ textAlign: 'center', padding: '20px' }}>
-        <h1 style={{ fontSize: '136px', fontFamily: 'YuMincho' }}>{card.kanji}</h1>
-      </div>
+        <Tab eventKey="first" title="Learn 習う">
+          
+          {/* Display kanji */}
+          <div className='card-container' style={{ textAlign: 'center', padding: '20px' }}>
+            <h1 style={{ fontSize: '136px', fontFamily: 'YuMincho' }}>{card.kanji}</h1>
+          </div>
 
-      {/* Show answer button */}
-      {!showAnswer && (
-        <div className='button-container' style={{ display: 'flex', justifyContent: 'center', marginTop: '20px' }}>
-          <button type='button' className='btn btn-primary' style={{ marginRight: '10px' }} onClick={showAnswerButtonClick}>
-            Show answer
-          </button>
-        </div>
-      )}
+          {/* Answer button */}
+          {!showAnswer && (
+            <div className='button-container' style={{ display: 'flex', justifyContent: 'center', marginTop: '20px' }}>
+              <Button type='button' className='btn btn-primary' style={{ marginRight: '10px' }} onClick={showAnswerButtonClick}>
+                Show answer
+              </Button>
+            </div>
+          )}
 
-      {/* Display card information and review buttons when showAnswer is true */}
-      {showAnswer && (
+          {/* Card information and review buttons when showAnswer is true */}
+          {showAnswer && (
 
-        <div>
+            <div>
 
-          {/* Display card information in a table */}
-          <table className="table table-bordered" style={{ marginTop: '20px' }}>
+              {/* Display card information in a table */}
+              <Table className="table table-bordered" style={{ marginTop: '20px' }}>
+                <thead>
+                  <tr>
+                    <th scope="col">Kun Reading</th>
+                    <th scope="col">On Reading</th>
+                    <th scope="col">Next review date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>{card.readings_kun}</td>
+                    <td>{card.readings_on}</td>
+                    <td>{card.next_review}</td>
+                  </tr>
+                </tbody>
+              </Table>
+
+              {/* Review buttons */}
+              <div className='button-container' style={{ display: 'flex', justifyContent: 'center', marginTop: '20px' }}>
+                <Button type='button' className='btn btn-danger' style={{ marginRight: '10px' }} onClick={() => reviewButtonClick(1)}>
+                  Unknown
+                </Button>
+                <Button type='button' className='btn btn-warning' style={{ marginRight: '10px' }} onClick={() => reviewButtonClick(2)}>
+                  Hard
+                </Button>
+                <Button type='button' className='btn btn-success' style={{ marginRight: '10px' }} onClick={() => reviewButtonClick(3)}>
+                  Okay
+                </Button>
+                <Button type='button' className='btn btn-primary' onClick={() => reviewButtonClick(4)}>
+                  Easy
+                </Button>
+
+              </div>
+
+            </div>
+
+          )}
+
+        </Tab>
+
+        <Tab eventKey="second" title="Backlog 見た漢字">
+
+          <Table striped bordered hover size="sm">
             <thead>
               <tr>
-                <th scope="col">Kun Reading</th>
-                <th scope="col">On Reading</th>
-                <th scope="col">Next review date</th>
+                <th width="170">Kanji</th>
+                <th width="170">Meanings</th>
+                <th width="170">Kun</th>
+                <th width="870">On</th>
+                <th width="1950">Previous review</th>
+                <th width="1950">Next review</th>
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td>{card.readings_kun}</td>
-                <td>{card.readings_on}</td>
-                <td>{card.next_review}</td>
-              </tr>
+              {seenCards.map((seenCard) => (
+                <tr key={card.id}>
+                  <td>{seenCard.kanji}</td>
+                  <td>{seenCard.meanings}</td>
+                  <td>{seenCard.readings_kun}</td>
+                  <td>{seenCard.readings_on}</td>
+                  <td>{seenCard.prev_review}</td>
+                  <td>{seenCard.next_review}</td>
+                </tr>
+              ))}
             </tbody>
-          </table>
+          </Table>
 
-          {/* Review buttons */}
-          <div className='button-container' style={{ display: 'flex', justifyContent: 'center', marginTop: '20px' }}>
-            <button type='button' className='btn btn-danger' style={{ marginRight: '10px' }} onClick={() => reviewButtonClick(1)}>
-              Unknown
-            </button>
-            <button type='button' className='btn btn-warning' style={{ marginRight: '10px' }} onClick={() => reviewButtonClick(2)}>
-              Hard
-            </button>
-            <button type='button' className='btn btn-success' style={{ marginRight: '10px' }} onClick={() => reviewButtonClick(3)}>
-              Okay
-            </button>
-            <button type='button' className='btn btn-primary' onClick={() => reviewButtonClick(4)}>
-              Easy
-            </button>
+        </Tab>
 
-          </div>
+      </Tabs>
 
-        </div>
-
-      )}
     </div>
   );
 }

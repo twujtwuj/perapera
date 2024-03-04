@@ -13,6 +13,10 @@ I based the API off of the FastAPI tutorial from this website (https://dennisivy
 
 App.js is the main file we work on
 
+- Explain what FastAPI
+- Explain what React is 
+- Explain what Boostrap-React is
+
 
 127.0.0.1 == localhost
 FastAPI works on port 8000 (of local machine)
