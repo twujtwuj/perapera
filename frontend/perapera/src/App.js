@@ -16,6 +16,19 @@ const App = () => {
   const [card, setCard] = useState([]);
   const [showAnswer, setShowAnswer] = useState(false);
   const [seenCards, setSeenCards] = useState([]);
+  const [formData, setFormData] = useState({
+    kanji: '',
+    strokes: 0,
+    grade: 0,
+    freq: 0,
+    jlpt_new: 0,
+    meanings: '',
+    readings_on: '',
+    readings_kun: '',
+    prev_review: '',
+    next_review: '',
+    seen: true
+  });
 
   // Get seen cards
   const fetchSeenCards = async () => {
@@ -47,6 +60,36 @@ const App = () => {
   const showAnswerButtonClick = () => {
     setShowAnswer(true);
   }
+
+  // FORM --------------------------
+  // Form input
+  const handleInputChange = (event) => {
+    const value = event.target.value;
+    setFormData({
+      ...formData,
+      [event.target.name]: value,
+    });
+  };
+
+  const handleFormSubmit = async (event) => {
+    event.preventDefault(); // Do not automatically submit the form
+    await api.post('/new_card', formData);
+    fetchSeenCards();
+    setFormData({
+      kanji: '',
+      strokes: 0,
+      grade: 0,
+      freq: 0,
+      jlpt_new: 0,
+      meanings: '',
+      readings_on: '',
+      readings_kun: '',
+      prev_review: '',
+      next_review: '',
+      seen: true
+    })
+  }
+  // ---------------------------------
 
   return (
 
@@ -89,16 +132,16 @@ const App = () => {
               <Table className="table table-bordered" style={{ marginTop: '20px' }}>
                 <thead>
                   <tr>
+                    <th scope="col">Meaning</th>
                     <th scope="col">Kun Reading</th>
                     <th scope="col">On Reading</th>
-                    <th scope="col">Next review date</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr>
+                    <td>{card.meanings}</td>
                     <td>{card.readings_kun}</td>
                     <td>{card.readings_on}</td>
-                    <td>{card.next_review}</td>
                   </tr>
                 </tbody>
               </Table>
@@ -141,7 +184,7 @@ const App = () => {
             </thead>
             <tbody>
               {seenCards.map((seenCard) => (
-                <tr key={card.id}>
+                <tr key={seenCard.id}>
                   <td>{seenCard.kanji}</td>
                   <td>{seenCard.meanings}</td>
                   <td>{seenCard.readings_kun}</td>
@@ -152,6 +195,49 @@ const App = () => {
               ))}
             </tbody>
           </Table>
+
+        </Tab>
+
+        {/* Adding new cards */}
+        <Tab eventKey="third" title="Add 新しい漢字">
+
+        <div className='container'>
+            <form onSubmit={handleFormSubmit}>
+
+              <div className='mb-3 mt-3'>
+                <label htmlFor='kanji' className='form-label'>
+                  Kanji
+                </label>
+                <input type='text' className='form-control' id='kanji' name='kanji' onChange={handleInputChange} value={formData.kanji}/>
+              </div>
+
+              <div className='mb-3'>
+                <label htmlFor='meanings' className='form-label'>
+                  Meanings
+                </label>
+                <input type='text' className='form-control' id='meanings' name='meanings' onChange={handleInputChange} value={formData.meanings}/>
+              </div>
+
+              <div className='mb-3'>
+                <label htmlFor='readings_kun' className='form-label'>
+                  Kun readings
+                </label>
+                <input type='text' className='form-control' id='readings_kun' name='readings_kun' onChange={handleInputChange} value={formData.readings_kun}/>
+              </div>
+
+              <div className='mb-3'>
+                <label htmlFor='readings_on' className='form-label'>
+                  On readings
+                </label>
+                <input type='text' className='form-control' id='readings_on' name='readings_on' onChange={handleInputChange} value={formData.readings_on}/>
+              </div>
+
+              <button type='submit' className='btn btn-primary'>
+                Add new card
+              </button>
+
+            </form>
+          </div>
 
         </Tab>
 

@@ -108,7 +108,7 @@ def getSeenCards(session: Session = Depends(get_session)):
 # # Get a card with ID
 # @app.get("/get_card/{id}")
 # def getCard(id: int, session: Session = Depends(get_session)):
-#     card = session.query(models.Card).get(id)
+#     card = session.query(models.Card).get(id)s
 #     return card
 
 
@@ -165,7 +165,7 @@ def updateCardReview(rating: int, session: Session = Depends(get_session)):
 
     # Update review dates based on rating
     current_interval = card.next_review - card.prev_review + timedelta(days=1)
-    current_date = datetime.now().date()
+    current_date = datetime.now().date()  # maybe remove date
     rounded_days = round(
         current_interval.total_seconds() / (24 * 60 * 60) * INTERVAL_SCALER[rating]
     )
@@ -200,7 +200,7 @@ def addCard(card: schemas.Card, session: Session = Depends(get_session)):
 
 # Delete card by ID
 @app.delete("/delete/{id}")
-def delete_card_by_id(id: int, session: Session = Depends(get_session)):
+def deleteCardByID(id: int, session: Session = Depends(get_session)):
     card = session.query(models.Card).get(id)
     if card:
         session.delete(card)
@@ -212,7 +212,7 @@ def delete_card_by_id(id: int, session: Session = Depends(get_session)):
 
 # # Delete card by kanji
 # @app.delete("/delete/{kanji}")
-# def delete_card_by_kanji(kanji: str, session: Session = Depends(get_session)):
+# def deleteCardByKanji(kanji: str, session: Session = Depends(get_session)):
 #     card = (
 #         session.query(models.Card)
 #         .filter(models.Card.kanji == kanji)
