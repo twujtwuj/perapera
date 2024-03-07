@@ -61,6 +61,12 @@ const App = () => {
     setShowAnswer(true);
   }
 
+  // Delete cards by button from backlog
+  const handleDelete = async (id) => {
+    await api.delete(`/delete/${id}`);
+    fetchSeenCards();
+  };
+  
   // FORM --------------------------
   // Form input
   const handleInputChange = (event) => {
@@ -91,6 +97,20 @@ const App = () => {
   }
   // ---------------------------------
 
+  const dateDifference = (date) => {
+    const currentDate = new Date();
+    const targetDate = new Date(date);
+    const differenceInDays = Math.round((targetDate - currentDate) / (24 * 60 * 60 * 1000)) + 1;
+  
+    if (differenceInDays === 0) {
+      return 'Today';
+    } else if (differenceInDays === 1) {
+      return differenceInDays > 0 ? `In ${differenceInDays} day` : `${Math.abs(differenceInDays)} day ago`
+    } else {
+      return differenceInDays > 0 ? `In ${differenceInDays} days` : `${Math.abs(differenceInDays)} days ago`;
+    }
+  };
+
   return (
 
     <div>
@@ -105,7 +125,7 @@ const App = () => {
       </nav>
       
       {/* Tabs */}
-      <Tabs defaultActiveKey="second">
+      <Tabs defaultActiveKey="first">
 
         <Tab eventKey="first" title="Learn 習う">
           
@@ -189,8 +209,11 @@ const App = () => {
                   <td>{seenCard.meanings}</td>
                   <td>{seenCard.readings_kun}</td>
                   <td>{seenCard.readings_on}</td>
-                  <td>{seenCard.prev_review}</td>
-                  <td>{seenCard.next_review}</td>
+                  <td>{dateDifference(seenCard.prev_review)}</td>
+                  <td>{dateDifference(seenCard.next_review)}</td>
+                  <td>
+                    <button onClick={() => handleDelete(seenCard.id)}> 消す </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -206,34 +229,34 @@ const App = () => {
 
               <div className='mb-3 mt-3'>
                 <label htmlFor='kanji' className='form-label'>
-                  Kanji
+                  Kanji 漢字
                 </label>
                 <input type='text' className='form-control' id='kanji' name='kanji' onChange={handleInputChange} value={formData.kanji}/>
               </div>
 
               <div className='mb-3'>
                 <label htmlFor='meanings' className='form-label'>
-                  Meanings
+                  Meanings 意味
                 </label>
                 <input type='text' className='form-control' id='meanings' name='meanings' onChange={handleInputChange} value={formData.meanings}/>
               </div>
 
               <div className='mb-3'>
                 <label htmlFor='readings_kun' className='form-label'>
-                  Kun readings
+                  Kun readings 訓読み
                 </label>
                 <input type='text' className='form-control' id='readings_kun' name='readings_kun' onChange={handleInputChange} value={formData.readings_kun}/>
               </div>
 
               <div className='mb-3'>
                 <label htmlFor='readings_on' className='form-label'>
-                  On readings
+                  On readings 音読み
                 </label>
                 <input type='text' className='form-control' id='readings_on' name='readings_on' onChange={handleInputChange} value={formData.readings_on}/>
               </div>
 
               <button type='submit' className='btn btn-primary'>
-                Add new card
+                Add new card 加える
               </button>
 
             </form>
