@@ -104,14 +104,6 @@ def getSeenCards(session: Session = Depends(get_session)):
     )
     return cards
 
-
-# # Get a card with ID
-# @app.get("/get_card/{id}")
-# def getCard(id: int, session: Session = Depends(get_session)):
-#     card = session.query(models.Card).get(id)s
-#     return card
-
-
 # Get a card that is due i.e. next_review is set to today, with lowest ID number
 @app.get("/next_card")
 def getNextCard(session: Session = Depends(get_session)):
@@ -192,6 +184,7 @@ def addCard(card: schemas.Card, session: Session = Depends(get_session)):
         meanings=card.meanings,
         readings_on=card.readings_on,
         readings_kun=card.readings_kun,
+        seen=card.seen
     )
     session.add(card)
     session.commit()
@@ -209,19 +202,3 @@ def deleteCardByID(id: int, session: Session = Depends(get_session)):
         return f"Card {id} with kanji {card.kanji} was deleted"
     else:
         raise HTTPException(status_code=404, detail=f"Card with ID {id} not found")
-
-# # Delete card by kanji
-# @app.delete("/delete/{kanji}")
-# def deleteCardByKanji(kanji: str, session: Session = Depends(get_session)):
-#     card = (
-#         session.query(models.Card)
-#         .filter(models.Card.kanji == kanji)
-#         .first()
-#     )
-#     if card:
-#         session.delete(card)
-#         session.commit()
-#         session.close()
-#         return f"Card {card.id} with kanji {card.kanji} was deleted"
-#     else:
-#         raise HTTPException(status_code=404, detail=f"Card with kanji {kanji} not found")

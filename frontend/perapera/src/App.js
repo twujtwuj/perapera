@@ -11,6 +11,11 @@ import Button from 'react-bootstrap/Button'  // Use table
 // useState hook: keep a state within React, so we know when state changes, when to shift and change pieces of data
 // useEffect hook: when component loads (App.js), then fetch transactions
 
+const TODAY = new Date().toISOString();
+const tomorrowDate = new Date();
+tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+const TOMORROW = tomorrowDate.toISOString();
+
 const App = () => {
 
   const [card, setCard] = useState([]);
@@ -25,8 +30,8 @@ const App = () => {
     meanings: '',
     readings_on: '',
     readings_kun: '',
-    prev_review: '',
-    next_review: '',
+    prev_review: TODAY,
+    next_review: TOMORROW,
     seen: true
   });
 
@@ -79,6 +84,7 @@ const App = () => {
 
   const handleFormSubmit = async (event) => {
     event.preventDefault(); // Do not automatically submit the form
+    console.log('Form Data:', formData);
     await api.post('/new_card', formData);
     fetchSeenCards();
     setFormData({
@@ -90,8 +96,8 @@ const App = () => {
       meanings: '',
       readings_on: '',
       readings_kun: '',
-      prev_review: '',
-      next_review: '',
+      prev_review: TODAY, 
+      next_review: TOMORROW,
       seen: true
     })
   }
@@ -100,12 +106,14 @@ const App = () => {
   const dateDifference = (date) => {
     const currentDate = new Date();
     const targetDate = new Date(date);
-    const differenceInDays = Math.round((targetDate - currentDate) / (24 * 60 * 60 * 1000)) + 1;
+    const differenceInDays = Math.round((targetDate - currentDate) / (24 * 60 * 60 * 1000) + 1);
   
     if (differenceInDays === 0) {
       return 'Today';
+    } else if (differenceInDays === -1) {
+      return `Yesterday`
     } else if (differenceInDays === 1) {
-      return differenceInDays > 0 ? `In ${differenceInDays} day` : `${Math.abs(differenceInDays)} day ago`
+      return `Tomorrow`
     } else {
       return differenceInDays > 0 ? `In ${differenceInDays} days` : `${Math.abs(differenceInDays)} days ago`;
     }
@@ -117,7 +125,7 @@ const App = () => {
 
       {/* Navigation bar */}
       <nav className='navbar navbar-dark bg-primary'>
-        <div ClassName='container-fluid'>
+        <div className='container-fluid'>
           <a className='navbar-brand' href='#' style={{ marginLeft: '20px' }}>
             PeraPera ペラペラ
           </a>
